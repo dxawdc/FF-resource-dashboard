@@ -383,11 +383,36 @@
 
         function bindChartClickEvents() {
             Object.keys(charts).forEach(chartKey => {
-                charts[chartKey].off('click'); 
+                charts[chartKey].off('click');
                 charts[chartKey].on('click', function (params) {
                     handleChartClick(chartKey, params);
                 });
+
+                charts[chartKey].off('legendselectchanged');
+                charts[chartKey].on('legendselectchanged', function (params) {
+                    updateVisibleTotalSeries(charts[chartKey], params.selected);
+                });
             });
+        }
+
+        function getSeriesValue(dataItem) {
+            return (typeof dataItem === 'object' && dataItem !== null) ? (dataItem.value || 0) : (dataItem || 0);
+        }
+
+        function updateVisibleTotalSeries(chart, selected) {
+            const option = chart.getOption();
+            const series = option.series || [];
+            const totalIndex = series.findIndex(s => s.name === '总计');
+            if (totalIndex === -1) return;
+
+            const sourceSeries = series.filter(s => s.name !== '总计' && selected[s.name] !== false);
+            const totalSeries = series[totalIndex];
+            const totals = (totalSeries.data || []).map((item, idx) => {
+                const nextValue = sourceSeries.reduce((sum, s) => sum + getSeriesValue(s.data[idx]), 0);
+                return (typeof item === 'object' && item !== null) ? { ...item, value: nextValue } : nextValue;
+            });
+
+            chart.setOption({ series: [{ id: totalSeries.id, name: '总计', data: totals }] });
         }
 
         // --- 数据处理层 ---
@@ -971,7 +996,7 @@
             if (seriesData.length > 0) {
                 const totals = seriesData[0].data.map((_, idx) => seriesData.reduce((sum, series) => sum + (series.data[idx] || 0), 0));
                 seriesData.push({
-                    name: '总计', type: 'bar', 
+                    id: 'total-series', name: '总计', type: 'bar',
                     barGap: '-100%', 
                     z: 1,            
                     tooltip: { 
@@ -981,7 +1006,7 @@
                         }
                     },
                     silent: false, 
-                    label: { show: true, position: 'top', formatter: p => formatLabelValue(totals[p.dataIndex]), color: '#333', fontWeight: 'bold' },
+                    label: { show: true, position: 'top', formatter: p => formatLabelValue(p.value), color: '#333', fontWeight: 'bold' },
                     itemStyle: { color: 'transparent' },
                     data: totals
                 });
@@ -1023,7 +1048,7 @@
             if (seriesData.length > 0) {
                 const totals = seriesData[0].data.map((_, idx) => seriesData.reduce((sum, series) => sum + (series.data[idx] || 0), 0));
                 seriesData.push({
-                    name: '总计', type: 'bar', 
+                    id: 'total-series', name: '总计', type: 'bar',
                     barGap: '-100%', 
                     z: 1,
                     tooltip: { 
@@ -1033,7 +1058,7 @@
                         }
                     },
                     silent: false, 
-                    label: { show: true, position: 'top', formatter: p => formatLabelValue(totals[p.dataIndex]), color: '#333', fontWeight: 'bold' },
+                    label: { show: true, position: 'top', formatter: p => formatLabelValue(p.value), color: '#333', fontWeight: 'bold' },
                     itemStyle: { color: 'transparent' },
                     data: totals
                 });
@@ -1075,7 +1100,7 @@
             if (seriesData.length > 0) {
                 const totals = seriesData[0].data.map((_, idx) => seriesData.reduce((sum, series) => sum + (series.data[idx] || 0), 0));
                 seriesData.push({
-                    name: '总计', type: 'bar', 
+                    id: 'total-series', name: '总计', type: 'bar',
                     barGap: '-100%', 
                     z: 1, 
                     tooltip: { 
@@ -1094,7 +1119,7 @@
                         distance: 5, 
                         fontSize: 10, 
                         hideOverlap: true,
-                        formatter: p => formatLabelValue(totals[p.dataIndex]), 
+                        formatter: p => formatLabelValue(p.value), 
                         color: '#333', 
                         fontWeight: 'bold' 
                     },
@@ -1147,7 +1172,7 @@
             if (seriesData.length > 0) {
                 const totals = seriesData[0].data.map((_, idx) => seriesData.reduce((sum, series) => sum + (series.data[idx] || 0), 0));
                 seriesData.push({
-                    name: '总计', type: 'bar', 
+                    id: 'total-series', name: '总计', type: 'bar',
                     barGap: '-100%', 
                     z: 1, 
                     tooltip: { 
@@ -1166,7 +1191,7 @@
                         distance: 5, 
                         fontSize: 10, 
                         hideOverlap: true,
-                        formatter: p => formatLabelValue(totals[p.dataIndex]), 
+                        formatter: p => formatLabelValue(p.value), 
                         color: '#333', 
                         fontWeight: 'bold' 
                     },
@@ -1231,7 +1256,7 @@
                 });
 
                 seriesData.push({
-                    name: '总计', type: 'bar', 
+                    id: 'total-series', name: '总计', type: 'bar',
                     barGap: '-100%', barMaxWidth: 50, z: 1, 
                     tooltip: { 
                         formatter: p => {
@@ -1318,7 +1343,7 @@
                 });
 
                 seriesData.push({
-                    name: '总计', type: 'bar', 
+                    id: 'total-series', name: '总计', type: 'bar',
                     barGap: '-100%', barMaxWidth: 50, z: 1, 
                     tooltip: { 
                         formatter: p => {
